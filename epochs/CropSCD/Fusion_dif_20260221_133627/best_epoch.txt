@@ -1,0 +1,1 @@
+Best Epoch: 1, mIoU: 0.15771

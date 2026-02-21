@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+*.pth
+*.pt
+*.ckpt
+*.log
+*.zip
+*.tar
+*.tar.gz
+*.png
+*.jpg
+*.npy
+*.npz
+data/
+runs/
+checkpoints/
+Trained_model/
