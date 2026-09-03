@@ -1,7 +1,8 @@
 import torch
 import numpy as np
 import os
-from metrics import eval_metrics_direct, get_seg_metrics  # 确保 metrics.py 里有这些函数
+# from metrics_scd import eval_metrics_direct, get_seg_metrics  # 确保 metrics.py 里有这些函数
+from metrics import eval_metrics_direct, get_seg_metrics, update_seg_metrics  # 确保 metrics.py 里有这些函数
 from PIL import Image  # 处理 PNG 图片
 import argparse  # 用于解析命令行参数
 
@@ -39,7 +40,7 @@ def load_labels(label_dir, test_data):
 
 def save_evaluation_results(metrics, output_dir):
     """ 保存评估结果到 evaluation.txt """
-    evaluation_file = os.path.join(output_dir, 'evaluation.txt')
+    evaluation_file = os.path.join(output_dir, 'evaluation0226.txt')
     with open(evaluation_file, 'w') as f:
         for key, value in metrics.items():
             f.write(f"{key}: {value}\n")
@@ -59,22 +60,33 @@ def main(test_file, prediction_dir, label_dir, num_classes):
     total_union = np.zeros(num_classes)
     total_FPR = np.zeros(num_classes)
     total_pred = np.zeros(num_classes)
+    total_lab_class = np.zeros(num_classes)
 
     for i, target in enumerate(labels):
         if predictions[i] is None or target is None:
             print(f"Skipping sample {test_data[i]} due to missing data.")
             continue
+        # ⭐ 先计算当前样本指标
+        correct,labeled,inter,union,FPR,pred,lab_class = \
+            eval_metrics_direct(predictions[i], target, num_classes)
 
-        correct, labeled, inter, union, area_FPR, area_pred = eval_metrics_direct(predictions[i], target, num_classes)
-        total_correct += correct
-        total_labeled += labeled
-        total_inter += inter
-        total_union += union
-        total_FPR += area_FPR
-        total_pred += area_pred
+        # ⭐ 再累计
+        total_inter,total_union,total_correct,total_labeled,\
+        total_FPR,total_pred,total_lab_class = update_seg_metrics(
+            total_inter,total_union,total_correct,total_labeled,
+            total_FPR,total_pred,total_lab_class,
+            correct,labeled,inter,union,FPR,pred,lab_class)
 
     # 计算最终的评估指标
-    metrics = get_seg_metrics(total_correct, total_labeled, total_inter, total_union, total_FPR, total_pred, num_classes)
+    metrics = get_seg_metrics(
+    total_correct,
+    total_labeled,
+    total_inter,
+    total_union,
+    total_FPR,
+    total_pred,
+    total_lab_class,
+    num_classes)
 
     # 保存评估结果
     # output_dir = os.path.dirname(prediction_dir)  # 结果保存到与 prediction_dir 同级的目录
